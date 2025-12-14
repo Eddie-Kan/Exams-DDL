@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>考试与DDL</title>
+    <style>
+        :root {
+            --bg-color: #f0f2f5;
+            --card-bg: #ffffff;
+            --text-primary: #333;
+            --text-secondary: #666;
+            --accent-blue: #1890ff;
+            --accent-red: #ff4d4f;
+            --accent-orange: #faad14;
+            --accent-green: #52c41a;
+            --border-radius: 8px;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container { max-width: 1200px; margin: 0 auto; }
+
+        /* 顶部导航 */
+        header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        h1 { margin: 0; font-size: 24px; color: #1f2d3d; }
+        .current-time { font-size: 1.1em; color: var(--text-secondary); margin-top: 5px; font-weight: bold; }
+        .week-indicator { font-size: 0.9em; color: var(--accent-blue); margin-top: 2px; }
+
+        /* 视图切换按钮 */
+        .view-switcher {
+            margin-top: 15px;
+            background: #e6f7ff;
+            padding: 5px;
+            border-radius: 20px;
+            display: flex;
+            gap: 5px;
+        }
+        .view-btn {
+            border: none;
+            background: none;
+            padding: 8px 20px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-weight: bold;
+            color: #555;
+            transition: 0.3s;
+        }
+        .view-btn.active {
+            background: var(--accent-blue);
+            color: white;
+            box-shadow: 0 2px 6px rgba(24, 144, 255, 0.3);
+        }
+
+        /* 待定事项警告栏 */
+        .alert-box {
+            background-color: #fffbe6;
+            border: 1px solid #ffe58f;
+            padding: 15px;
+            border-radius: var(--border-radius);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            color: #d46b08;
+            font-weight: bold;
+        }
+        .alert-icon { margin-right: 10px; font-size: 20px; }
+
+        /* === 列表视图样式 === */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        @media (max-width: 768px) { .main-grid { grid-template-columns: 1fr; } }
+
+        .section-title {
+            border-left: 5px solid var(--accent-blue);
+            padding-left: 10px;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            transition: transform 0.2s;
+            position: relative;
+            border-left: 5px solid transparent;
+        }
+        .card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+        .subject { font-size: 1.1em; font-weight: bold; }
+        .location { font-size: 0.9em; color: var(--text-secondary); background: #f5f5f5; padding: 2px 6px; border-radius: 4px; }
+        .time-info { font-size: 0.95em; color: #444; margin-bottom: 5px; background: #e6f7ff; display: inline-block; padding: 4px 8px; border-radius: 4px; }
+        .requirements { margin-top: 10px; padding-top: 10px; border-top: 1px dashed #eee; font-size: 0.85em; color: #666; }
+        .countdown { font-family: 'Courier New', monospace; font-size: 1.4em; font-weight: bold; text-align: right; margin-top: 10px; }
+        
+        .status-urgent { border-left-color: var(--accent-red); }
+        .status-urgent .countdown { color: var(--accent-red); }
+        .status-warning { border-left-color: var(--accent-orange); }
+        .status-warning .countdown { color: var(--accent-orange); }
+        .status-normal { border-left-color: var(--accent-green); }
+        .status-normal .countdown { color: var(--accent-green); }
+        .status-done { border-left-color: #d9d9d9; opacity: 0.6; background: #fafafa; }
+        .status-done .subject { text-decoration: line-through; }
+        
+        .tag { display: inline-block; font-size: 0.75rem; padding: 2px 6px; border-radius: 4px; margin-right: 5px; color: white; vertical-align: middle; }
+        .tag-exam { background-color: #2db7f5; }
+        .tag-ddl { background-color: #87d068; }
+
+        /* === 日历视图样式 === */
+        #calendar-view { display: none; background: white; padding: 20px; border-radius: var(--border-radius); box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .calendar-title { font-size: 1.5em; font-weight: bold; }
+        .calendar-nav-btn { cursor: pointer; background: #f0f2f5; border: none; padding: 5px 15px; border-radius: 5px; font-size: 1.2em; }
+        .calendar-nav-btn:hover { background: #e6f7ff; color: var(--accent-blue); }
+
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; }
+        .calendar-day-header { text-align: center; font-weight: bold; color: #888; padding-bottom: 10px; }
+        
+        .calendar-day { 
+            min-height: 100px; 
+            border: 1px solid #eee; 
+            border-radius: 5px; 
+            padding: 5px; 
+            position: relative;
+            background: #fff;
+        }
+        .calendar-day.other-month { background: #fcfcfc; color: #ccc; }
+        .calendar-day.today { border: 2px solid var(--accent-blue); }
+        .day-number { font-weight: bold; margin-bottom: 5px; display: block; }
+        
+        .event-dot { 
+            font-size: 0.75em; 
+            padding: 2px 4px; 
+            margin-bottom: 2px; 
+            border-radius: 3px; 
+            color: white; 
+            white-space: nowrap; 
+            overflow: hidden; 
+            text-overflow: ellipsis; 
+            cursor: pointer;
+        }
+        .event-dot.exam { background: var(--accent-blue); }
+        .event-dot.ddl { background: var(--accent-green); }
+        
+        /* 视图控制 */
+        .hidden { display: none !important; }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>📅 期末考试 & DDL</h1>
+        <div id="current-clock" class="current-time">Loading...</div>
+        <div id="current-week" class="week-indicator"></div>
+        
+        <div class="view-switcher">
+            <button class="view-btn active" onclick="switchView('list')">📋 列表模式</button>
+            <button class="view-btn" onclick="switchView('calendar')">🗓️ 日历模式</button>
+        </div>
+    </header>
+
+    <div class="alert-box">
+        <span class="alert-icon">⚠️</span>
+        <div>
+            待定事项：<strong>物理化学实验B-1 考试</strong> (时间地点未知，请密切关注通知)
+        </div>
+    </div>
+
+    <div id="list-view" class="main-grid">
+        <div class="column">
+            <div class="section-title">⚔️ 即将到来的考试</div>
+            <div id="exam-list"></div>
+        </div>
+        <div class="column">
+            <div class="section-title">📝 作业 / 汇报 / DDL</div>
+            <div id="ddl-list"></div>
+        </div>
+    </div>
+
+    <div id="calendar-view">
+        <div class="calendar-header">
+            <button class="calendar-nav-btn" onclick="changeMonth(-1)">❮</button>
+            <div class="calendar-title" id="calendar-title">2025年 12月</div>
+            <button class="calendar-nav-btn" onclick="changeMonth(1)">❯</button>
+        </div>
+        <div class="calendar-grid" id="calendar-grid">
+            </div>
+    </div>
+
+</div>
+
+<script>
+    // 数据源
+    const rawData = [
+        // 考试类
+        { type: 'exam', title: '工程力学B 期末', date: '2025-12-19T18:30:00', loc: '仁智501', note: '' },
+        { type: 'exam', title: '中国近现代史纲要 期末', date: '2025-12-24T14:00:00', loc: '厚学楼202(多)', note: '' },
+        { type: 'exam', title: '物理化学B-1 期末', date: '2025-12-24T18:40:00', loc: '厚学楼214(多)', note: '' },
+        { type: 'exam', title: '有机化学C 期末', date: '2025-12-26T18:40:00', loc: '厚学楼402(多)', note: '' },
+        { type: 'exam', title: '线性代数 期中', date: '2025-12-28T14:00:00', loc: '待通知', note: '时间仅为预设(下午)，具体待通知', isApprox: true },
+        { type: 'exam', title: '材料导论 期末', date: '2026-01-07T14:00:00', loc: '待通知', note: '' },
+        
+        // --- 修正点：线性代数期末时间修正为 9:00-11:00 ---
+        { type: 'exam', title: '线性代数 期末', date: '2026-01-08T09:00:00', customTime: '09:00-11:00', loc: '待通知', note: '考试时长 2小时' },
+
+        // DDL类
+        { type: 'ddl', title: '工程伦理学 PPT汇报', date: '2025-12-22T23:59:59', loc: '待通知', note: '7min PPT + 3min 讨论' },
+        { type: 'ddl', title: '物理化学实验B-1 报告', date: '2025-12-22T23:59:59', loc: '提交报告', note: '' },
+        { type: 'ddl', title: '物理化学B-1 课程作业', date: '2025-12-23T12:00:00', loc: '线上/待定', note: '大纲+讲稿+视频+PPT逻辑图' },
+        { type: 'ddl', title: '材料导论 课程撰写综述', date: '2025-12-26T23:59:59', loc: '提交综述', note: '' },
+        { type: 'ddl', title: '有机化学C 实验报告', date: '2026-01-05T23:59:59', loc: '提交报告', note: '' }
+    ];
+
+    // 当前日历显示的年月
+    let currentCalendarDate = new Date();
+
+    // 周次计算
+    function getWeekLabel(dateObj) {
+        // 基准：2025-12-15 = 第16周 周一
+        // 推算第1周周一：2025-09-01 (105天前)
+        const refDate = new Date('2025-12-15T00:00:00'); 
+        const week1Start = new Date(refDate.getTime() - (105 * 24 * 60 * 60 * 1000));
+        
+        const target = new Date(dateObj);
+        target.setHours(0,0,0,0);
+        const start = new Date(week1Start);
+        start.setHours(0,0,0,0);
+
+        const diffTime = target.getTime() - start.getTime();
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        const weekNum = Math.floor(diffDays / 7) + 1;
+        
+        const dayMap = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+        return `第${weekNum}周 ${dayMap[target.getDay()]}`;
+    }
+
+    // 更新时钟
+    function updateClock() {
+        const now = new Date();
+        const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long', hour: '2-digit', minute: '2-digit', second: '2-digit' };
+        document.getElementById('current-clock').innerText = now.toLocaleDateString('zh-CN', options);
+        document.getElementById('current-week').innerText = "当前：" + getWeekLabel(now);
+    }
+
+    // 倒计时计算
+    function calculateTimeLeft(targetDate) {
+        const now = new Date().getTime();
+        const target = new Date(targetDate).getTime();
+        const diff = target - now;
+        if (diff < 0) return null;
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+        return { total: diff, days, hours, minutes, seconds };
+    }
+
+    // 渲染列表视图
+    function renderList() {
+        const examContainer = document.getElementById('exam-list');
+        const ddlContainer = document.getElementById('ddl-list');
+        examContainer.innerHTML = '';
+        ddlContainer.innerHTML = '';
+
+        const sortedData = [...rawData].sort((a, b) => new Date(a.date) - new Date(b.date));
+
+        sortedData.forEach(item => {
+            const timeLeft = calculateTimeLeft(item.date);
+            const dateObj = new Date(item.date);
+            const weekInfo = getWeekLabel(dateObj);
+
+            // 时间显示逻辑
+            let timeStr = '';
+            if (item.customTime) {
+                timeStr = item.customTime; // 使用自定义时间（如 09:00-11:00）
+            } else if (item.isApprox) {
+                timeStr = "下午 (具体待定)";
+            } else if (item.date.includes('23:59:59')) {
+                timeStr = "当天截止";
+            } else {
+                timeStr = `${dateObj.getHours().toString().padStart(2, '0')}:${dateObj.getMinutes().toString().padStart(2, '0')}`;
+            }
+
+            const dateStr = `${dateObj.getMonth() + 1}月${dateObj.getDate()}日`;
+            
+            let statusClass = 'status-normal';
+            let countdownText = '';
+
+            if (timeLeft === null) {
+                statusClass = 'status-done';
+                countdownText = '已结束 / 已截止';
+            } else {
+                if (timeLeft.total < 24 * 60 * 60 * 1000) statusClass = 'status-urgent';
+                else if (timeLeft.total < 3 * 24 * 60 * 60 * 1000) statusClass = 'status-warning';
+                
+                countdownText = `<span style="font-size:1.2em">${timeLeft.days}</span>天 <span style="font-size:1.2em">${timeLeft.hours}</span>时 <span style="font-size:1.2em">${timeLeft.minutes}</span>分 <span style="font-size:1.2em">${timeLeft.seconds}</span>秒`;
+            }
+
+            const cardHtml = `
+                <div class="card ${statusClass}">
+                    <div class="card-header">
+                        <div class="subject">
+                            <span class="tag ${item.type === 'exam' ? 'tag-exam' : 'tag-ddl'}">${item.type === 'exam' ? '考试' : 'DDL'}</span>
+                            ${item.title}
+                        </div>
+                        <div class="location">📍 ${item.loc}</div>
+                    </div>
+                    <div class="time-info">📅 ${dateStr} (${weekInfo}) &nbsp; ⏰ ${timeStr}</div>
+                    <div class="countdown">${countdownText}</div>
+                    ${item.note ? `<div class="requirements">💡 ${item.note}</div>` : ''}
+                </div>
+            `;
+            if (item.type === 'exam') examContainer.innerHTML += cardHtml;
+            else ddlContainer.innerHTML += cardHtml;
+        });
+    }
+
+    // === 日历相关逻辑 ===
+    function renderCalendar() {
+        const grid = document.getElementById('calendar-grid');
+        const title = document.getElementById('calendar-title');
+        grid.innerHTML = '';
+        
+        const year = currentCalendarDate.getFullYear();
+        const month = currentCalendarDate.getMonth(); // 0-11
+        
+        title.innerText = `${year}年 ${month + 1}月`;
+        
+        // 星期头
+        const days = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+        days.forEach(d => {
+            const el = document.createElement('div');
+            el.className = 'calendar-day-header';
+            el.innerText = d;
+            grid.appendChild(el);
+        });
+
+        // 计算当月第一天是周几
+        const firstDay = new Date(year, month, 1).getDay();
+        // 计算当月有多少天
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+        // 填充空白
+        for (let i = 0; i < firstDay; i++) {
+            const el = document.createElement('div');
+            el.className = 'calendar-day other-month';
+            grid.appendChild(el);
+        }
+
+        // 填充日期
+        const today = new Date();
+        for (let day = 1; day <= daysInMonth; day++) {
+            const el = document.createElement('div');
+            el.className = 'calendar-day';
+            
+            // 标记今天
+            if (year === today.getFullYear() && month === today.getMonth() && day === today.getDate()) {
+                el.classList.add('today');
+            }
+
+            el.innerHTML = `<span class="day-number">${day}</span>`;
+
+            // 查找当天的事件
+            const currentDateStr = `${year}-${String(month+1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            
+            rawData.forEach(item => {
+                const itemDate = new Date(item.date);
+                const itemDateStr = `${itemDate.getFullYear()}-${String(itemDate.getMonth()+1).padStart(2, '0')}-${String(itemDate.getDate()).padStart(2, '0')}`;
+                
+                if (currentDateStr === itemDateStr) {
+                    const eventDiv = document.createElement('div');
+                    eventDiv.className = `event-dot ${item.type}`;
+                    eventDiv.innerText = item.title;
+                    eventDiv.title = `${item.title} (${item.type === 'exam' ? '考试' : 'DDL'})\n时间: ${item.customTime || itemDate.getHours()+':'+String(itemDate.getMinutes()).padStart(2,'0')}\n地点: ${item.loc}`;
+                    el.appendChild(eventDiv);
+                }
+            });
+
+            grid.appendChild(el);
+        }
+    }
+
+    function changeMonth(offset) {
+        currentCalendarDate.setMonth(currentCalendarDate.getMonth() + offset);
+        renderCalendar();
+    }
+
+    // 视图切换
+    function switchView(viewName) {
+        const listView = document.getElementById('list-view');
+        const calendarView = document.getElementById('calendar-view');
+        const btns = document.querySelectorAll('.view-btn');
+
+        btns.forEach(btn => btn.classList.remove('active'));
+        
+        if (viewName === 'list') {
+            listView.classList.remove('hidden');
+            calendarView.classList.add('hidden');
+            btns[0].classList.add('active');
+        } else {
+            listView.classList.add('hidden');
+            calendarView.classList.remove('hidden');
+            calendarView.style.display = 'block'; // Ensure block display
+            btns[1].classList.add('active');
+            renderCalendar(); // 切换时重新渲染确保尺寸正确
+        }
+    }
+
+    // 初始化
+    setInterval(updateClock, 1000);
+    setInterval(renderList, 1000); // 列表倒计时刷新
+    updateClock();
+    renderList();
+    renderCalendar(); // 初始也渲染一次日历
+
+</script>
+
+</body>
+</html>
