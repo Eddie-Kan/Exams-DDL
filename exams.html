@@ -181,13 +181,6 @@
         </div>
     </header>
 
-    <div class="alert-box">
-        <span class="alert-icon">⚠️</span>
-        <div>
-            待定事项：<strong>物理化学实验B-1 考试</strong> (时间地点未知，请密切关注通知)
-        </div>
-    </div>
-
     <div id="list-view" class="main-grid">
         <div class="column">
             <div class="section-title">⚔️ 即将到来的考试</div>
@@ -216,14 +209,15 @@
     const rawData = [
         // 考试类
         { type: 'exam', title: '工程力学B 期末', date: '2025-12-19T18:30:00', loc: '仁智501', note: '' },
-        { type: 'exam', title: '中国近现代史纲要 期末', date: '2025-12-24T14:00:00', loc: '厚学楼202(多)', note: '' },
-        { type: 'exam', title: '物理化学B-1 期末', date: '2025-12-24T18:40:00', loc: '厚学楼214(多)', note: '' },
-        { type: 'exam', title: '有机化学C 期末', date: '2025-12-26T18:40:00', loc: '厚学楼402(多)', note: '' },
+        { type: 'exam', title: '中国近现代史纲要 期末', date: '2025-12-24T14:00:00', customTime: '14:00-16:00', loc: '厚学楼202(多)', note: '' },
+        { type: 'exam', title: '物理化学B-1 期末', date: '2025-12-24T18:40:00', customTime: '18:40-20:40', loc: '厚学楼214(多)', note: '' },
+        { type: 'exam', title: '有机化学C 期末', date: '2025-12-26T18:40:00', customTime: '18:40-20:40', loc: '厚学楼402(多)', note: '' },
         { type: 'exam', title: '线性代数 期中', date: '2025-12-28T14:00:00', loc: '待通知', note: '时间仅为预设(下午)，具体待通知', isApprox: true },
-        { type: 'exam', title: '材料导论 期末', date: '2026-01-07T14:00:00', loc: '待通知', note: '' },
-        
+        { type: 'exam', title: '大学物理A-2 期末', date: '2026-01-06T14:00:00', customTime: '14:00-16:00', loc: '厚学楼300(多)', note: '' },
+        { type: 'exam', title: '材料导论（无机非金属材料） 期末', date: '2026-01-07T14:00:00', customTime: '14:00-16:00', loc: '笃学B楼305(多)', note: '' },
+
         // --- 修正点：线性代数期末时间修正为 9:00-11:00 ---
-        { type: 'exam', title: '线性代数 期末', date: '2026-01-08T09:00:00', customTime: '09:00-11:00', loc: '待通知', note: '考试时长 2小时' },
+        { type: 'exam', title: '线性代数 期末', date: '2026-01-08T09:00:00', customTime: '09:00-11:00', loc: '仁智楼513(多)', note: '考试时长 2小时' },
 
         // DDL类
         { type: 'ddl', title: '工程伦理学 PPT汇报', date: '2025-12-22T23:59:59', loc: '待通知', note: '7min PPT + 3min 讨论' },
